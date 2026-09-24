@@ -1341,9 +1341,8 @@
   }
 }
 
-/* KTH Neuro — tighter hero spacing */
-.hero {
-  min-height: 650px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+#brain-3d {
+  width: 100%;
+  height: 450px;
+  margin: 0 auto;
 }
