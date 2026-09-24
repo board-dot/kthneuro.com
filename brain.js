@@ -1,196 +1,267 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/DRACOLoader.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
 
 const container = document.getElementById("brain-3d");
 
 if (!container) {
-  throw new Error("Brain container not found.");
-}
+  console.error("KTH Neuro: #brain-3d was not found.");
+} else {
+  const scene = new THREE.Scene();
 
-const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    35,
+    container.clientWidth / Math.max(container.clientHeight, 1),
+    0.01,
+    1000
+  );
 
-const camera = new THREE.PerspectiveCamera(
-  35,
-  container.clientWidth / container.clientHeight,
-  0.1,
-  100
-);
+  camera.position.set(0, 0.15, 2.6);
 
-camera.position.set(0, 0, 5);
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance"
+  });
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true
-});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+  container.appendChild(renderer.domElement);
 
-renderer.domElement.style.width = "100%";
-renderer.domElement.style.height = "100%";
-renderer.domElement.style.display = "block";
-renderer.domElement.style.cursor = "grab";
-renderer.domElement.style.touchAction = "none";
+  // Lighting
+  scene.add(
+    new THREE.HemisphereLight(0xffffff, 0x223044, 2.2)
+  );
 
-container.appendChild(renderer.domElement);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+  keyLight.position.set(3, 4, 5);
+  scene.add(keyLight);
 
-// Lighting
-scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+  const fillLight = new THREE.DirectionalLight(0x9bbcff, 1.2);
+  fillLight.position.set(-4, 1, 2);
+  scene.add(fillLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2);
-keyLight.position.set(3, 4, 5);
-scene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0xffffff, 1);
+  rimLight.position.set(0, -2, -5);
+  scene.add(rimLight);
 
-const fillLight = new THREE.DirectionalLight(0x8fdff0, 1.5);
-fillLight.position.set(-4, 1, 3);
-scene.add(fillLight);
+  const brainRoot = new THREE.Group();
+  scene.add(brainRoot);
 
-// Brain
-const brain = new THREE.Group();
-scene.add(brain);
+  // Mouse controls
+  const controls = new OrbitControls(
+    camera,
+    renderer.domElement
+  );
 
-const loader = new GLTFLoader();
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.075;
+  controls.enablePan = true;
+  controls.enableZoom = true;
+  controls.minDistance = 0.35;
+  controls.maxDistance = 8;
 
-loader.load(
-  "./models/brain.glb",
-  (gltf) => {
-    const model = gltf.scene;
+  controls.target.set(0, 0, 0);
 
-    // Center and scale the model automatically
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
+  // Gentle automatic rotation
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.55;
 
-    model.position.sub(center);
+  // Stop automatic rotation when the visitor interacts
+  const stopAutoRotate = () => {
+    controls.autoRotate = false;
+  };
 
-    const maxDimension = Math.max(size.x, size.y, size.z);
-    const scale = 3.1 / maxDimension;
+  renderer.domElement.addEventListener(
+    "pointerdown",
+    stopAutoRotate
+  );
 
-    model.scale.setScalar(scale);
+  renderer.domElement.addEventListener(
+    "wheel",
+    stopAutoRotate
+  );
 
-    // Give the brain a clean KTH Neuro appearance
-    model.traverse((object) => {
-      if (!object.isMesh) return;
+  renderer.domElement.addEventListener(
+    "touchstart",
+    stopAutoRotate
+  );
 
-      object.castShadow = false;
-      object.receiveShadow = false;
+  // Draco decoder
+  const dracoLoader = new DRACOLoader();
 
-      if (object.material) {
-        const materials = Array.isArray(object.material)
-          ? object.material
-          : [object.material];
+  dracoLoader.setDecoderPath(
+    "https://www.gstatic.com/draco/versioned/decoders/1.5.7/"
+  );
 
-        materials.forEach((material) => {
-          material.color.set("#8fd8e8");
-          material.roughness = 0.7;
-          material.metalness = 0.05;
-        });
+  // GLB loader
+  const loader = new GLTFLoader();
+
+  loader.setDRACOLoader(dracoLoader);
+
+  loader.load(
+    "./models/brain.glb",
+
+    (gltf) => {
+      const model = gltf.scene;
+
+      // Prepare all anatomical meshes
+      model.traverse((object) => {
+        if (!object.isMesh) return;
+
+        object.frustumCulled = true;
+
+        if (object.material) {
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+
+          materials.forEach((material) => {
+            material.transparent = false;
+            material.depthWrite = true;
+            material.side = THREE.DoubleSide;
+
+            if ("roughness" in material) {
+              material.roughness = 0.72;
+            }
+
+            if ("metalness" in material) {
+              material.metalness = 0;
+            }
+          });
+        }
+      });
+
+      brainRoot.add(model);
+
+      // Find the complete model bounds
+      const box = new THREE.Box3().setFromObject(model);
+
+      const center = box.getCenter(
+        new THREE.Vector3()
+      );
+
+      const size = box.getSize(
+        new THREE.Vector3()
+      );
+
+      // Center the brain
+      model.position.sub(center);
+
+      // Scale it to a good size
+      const maxDimension = Math.max(
+        size.x,
+        size.y,
+        size.z
+      );
+
+      if (maxDimension > 0) {
+        const desiredSize = 1.65;
+        const scale = desiredSize / maxDimension;
+
+        model.scale.setScalar(scale);
       }
-    });
 
-    brain.add(model);
+      // Frame the entire brain
+      const framedBox = new THREE.Box3().setFromObject(model);
 
-    // Slight initial angle
-    brain.rotation.x = -0.08;
-    brain.rotation.y = 0.25;
-  },
-  undefined,
-  (error) => {
-    console.error("Could not load brain.glb:", error);
+      const framedSize = framedBox.getSize(
+        new THREE.Vector3()
+      );
+
+      const framedCenter = framedBox.getCenter(
+        new THREE.Vector3()
+      );
+
+      controls.target.copy(framedCenter);
+
+      const maxFramed = Math.max(
+        framedSize.x,
+        framedSize.y,
+        framedSize.z
+      );
+
+      const distance = Math.max(
+        maxFramed * 1.35,
+        1.9
+      );
+
+      camera.position.set(
+        distance * 0.78,
+        distance * 0.18,
+        distance * 0.78
+      );
+
+      camera.lookAt(framedCenter);
+
+      // Slightly turn the brain toward the viewer
+      model.rotation.y = -0.12;
+
+      console.log(
+        "KTH Neuro: 3D brain loaded successfully."
+      );
+    },
+
+    undefined,
+
+    (error) => {
+      console.error(
+        "KTH Neuro: could not load models/brain.glb",
+        error
+      );
+    }
+  );
+
+  // Keep the brain correctly sized
+  function resize() {
+    const width = Math.max(
+      container.clientWidth,
+      1
+    );
+
+    const height = Math.max(
+      container.clientHeight,
+      1
+    );
+
+    camera.aspect = width / height;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.setSize(
+      width,
+      height,
+      false
+    );
   }
-);
 
-// Mouse / touch rotation
-let dragging = false;
-let previousX = 0;
-let previousY = 0;
+  const resizeObserver =
+    new ResizeObserver(resize);
 
-let targetRotationX = -0.08;
-let targetRotationY = 0.25;
+  resizeObserver.observe(container);
 
-let currentRotationX = targetRotationX;
-let currentRotationY = targetRotationY;
+  resize();
 
-renderer.domElement.addEventListener("pointerdown", (event) => {
-  dragging = true;
+  // Animation
+  function animate() {
+    requestAnimationFrame(animate);
 
-  previousX = event.clientX;
-  previousY = event.clientY;
+    controls.update();
 
-  renderer.domElement.setPointerCapture(event.pointerId);
-  renderer.domElement.style.cursor = "grabbing";
-});
-
-renderer.domElement.addEventListener("pointermove", (event) => {
-  if (!dragging) return;
-
-  const deltaX = event.clientX - previousX;
-  const deltaY = event.clientY - previousY;
-
-  previousX = event.clientX;
-  previousY = event.clientY;
-
-  targetRotationY += deltaX * 0.01;
-  targetRotationX += deltaY * 0.01;
-
-  targetRotationX = THREE.MathUtils.clamp(
-    targetRotationX,
-    -1.2,
-    1.2
-  );
-});
-
-function stopDragging() {
-  dragging = false;
-  renderer.domElement.style.cursor = "grab";
-}
-
-renderer.domElement.addEventListener("pointerup", stopDragging);
-renderer.domElement.addEventListener("pointercancel", stopDragging);
-
-// Slow automatic rotation when not being controlled
-const clock = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  const elapsed = clock.getElapsedTime();
-
-  if (!dragging) {
-    targetRotationY += 0.0015;
+    renderer.render(
+      scene,
+      camera
+    );
   }
 
-  currentRotationX = THREE.MathUtils.lerp(
-    currentRotationX,
-    targetRotationX,
-    0.08
-  );
-
-  currentRotationY = THREE.MathUtils.lerp(
-    currentRotationY,
-    targetRotationY,
-    0.08
-  );
-
-  brain.rotation.x = currentRotationX;
-  brain.rotation.y = currentRotationY;
-
-  renderer.render(scene, camera);
+  animate();
 }
-
-animate();
-
-// Responsive
-function resize() {
-  const width = container.clientWidth;
-  const height = Math.max(container.clientHeight, 300);
-
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(width, height);
-}
-
-window.addEventListener("resize", resize);
-resize();
