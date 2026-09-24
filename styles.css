@@ -1340,3 +1340,20 @@
     min-height: 360px;
   }
 }
+
+/* KTH Neuro — tighter, larger 3D brain hero */
+#brain-3d {
+  transform: scale(1.9);
+  transform-origin: center center;
+  margin: 0;
+}
+
+.hero {
+  padding-left: 3vw;
+  padding-right: 3vw;
+}
+
+#brain-3d {
+  margin-left: -4vw;
+  margin-right: -4vw;
+}
