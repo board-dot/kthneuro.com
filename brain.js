@@ -35,7 +35,7 @@ if (!container) {
 
 
   // --------------------------------------------------
-  // Load external JavaScript
+  // Load external scripts
   // --------------------------------------------------
 
   function loadScript(src) {
@@ -60,24 +60,24 @@ if (!container) {
 
 
   // --------------------------------------------------
-  // KTH Neuro colour palette
+  // KTH Neuro palette
   // --------------------------------------------------
 
   window.BRAIN = {
 
     palette: {
 
-      cortex: "#DDE9F5",
+      cortex: "#DCEAF5",
 
-      white_matter: "#C9D8E8",
+      white_matter: "#C9D9E8",
 
-      deep_grey: "#A88BD4",
+      deep_grey: "#9E82D0",
 
-      diencephalon: "#718DE0",
+      diencephalon: "#718BDD",
 
       brainstem: "#E8B24A",
 
-      cerebellum: "#D98C72",
+      cerebellum: "#D98D72",
 
       ventricles: "#55D5DD",
 
@@ -85,12 +85,13 @@ if (!container) {
 
       veins_sinuses: "#5078E8",
 
-      // Cyan instead of yellow
-      cranial_nerves: "#8FE7E7",
+      // Cyan neural appearance
+      cranial_nerves: "#83E8EA",
 
       meninges_dura: "#CC63CC",
 
-      tracts: "#62C7C7"
+      tracts: "#63D0D0"
+
     }
 
   };
@@ -110,7 +111,7 @@ if (!container) {
       );
 
 
-      // Load the remaining dependencies together
+      // Load dependencies
       await Promise.all([
 
         loadScript(
@@ -138,7 +139,7 @@ if (!container) {
 
 
       // ------------------------------------------------
-      // Create the anatomical brain
+      // Create brain
       // ------------------------------------------------
 
       const brain = window.BrainScene.create(
@@ -154,7 +155,7 @@ if (!container) {
 
           autorotate: true,
 
-          exposure: 0.95
+          exposure: 0.90
 
         }
 
@@ -162,81 +163,91 @@ if (!container) {
 
 
       // ------------------------------------------------
-      // KTH NEURO HERO APPEARANCE
-      // ------------------------------------------------
-      //
-      // Transparent cortex
-      // Neural structures visible
-      // Blood vessels hidden
-      // Yellow brainstem hidden
+      // KTH NEURO HERO
       // ------------------------------------------------
 
       brain.setLayers({
 
-        // Main cortex:
-        // transparent enough to see inside
+        // ----------------------------------------------
+        // OUTER CORTEX
+        // ----------------------------------------------
+
         cortex: {
           visible: true,
-          opacity: 0.24
+          opacity: 0.16
         },
 
 
-        // White matter:
-        // subtle internal layer
+        // ----------------------------------------------
+        // WHITE MATTER
+        // ----------------------------------------------
+
         white_matter: {
           visible: true,
-          opacity: 0.30
+          opacity: 0.22
         },
 
 
-        // Deep grey matter:
-        // visible through cortex
+        // ----------------------------------------------
+        // INTERNAL GREY MATTER
+        // ----------------------------------------------
+
         deep_grey: {
           visible: true,
-          opacity: 0.70
+          opacity: 0.58
         },
 
 
-        // Deep central structures
         diencephalon: {
           visible: true,
-          opacity: 0.60
+          opacity: 0.50
         },
 
 
-        // Hide the large yellow brainstem
+        // ----------------------------------------------
+        // REMOVE LARGE YELLOW STRUCTURE
+        // ----------------------------------------------
+
         brainstem: {
           visible: false
         },
 
 
-        // Keep cerebellum subtle
+        // ----------------------------------------------
+        // CEREBELLUM
+        // ----------------------------------------------
+
         cerebellum: {
           visible: true,
-          opacity: 0.25
+          opacity: 0.18
         },
 
 
-        // ------------------------------------------------
-        // NEURAL STRUCTURES
-        // ------------------------------------------------
+        // ----------------------------------------------
+        // INTERNAL NEURAL PATHWAYS
+        // ----------------------------------------------
+
+        tracts: {
+          visible: true,
+          opacity: 0.72
+        },
+
+
+        // ----------------------------------------------
+        // CRANIAL NERVES
+        //
+        // Keep them, but much less dominant.
+        // ----------------------------------------------
 
         cranial_nerves: {
           visible: true,
-          opacity: 0.95
+          opacity: 0.38
         },
 
 
-        // Internal white-matter pathways
-        tracts: {
-          visible: true,
-          opacity: 0.60
-        },
-
-
-        // ------------------------------------------------
+        // ----------------------------------------------
         // HIDE BLOOD VESSELS
-        // ------------------------------------------------
+        // ----------------------------------------------
 
         arteries: {
           visible: false
@@ -248,20 +259,22 @@ if (!container) {
         },
 
 
-        // ------------------------------------------------
-        // OTHER STRUCTURES
-        // ------------------------------------------------
+        // ----------------------------------------------
+        // HIDE OUTER MEMBRANE
+        // ----------------------------------------------
 
-        // Hide outer membrane
         meninges_dura: {
           visible: false
         },
 
 
-        // Keep ventricles faint
+        // ----------------------------------------------
+        // VERY SUBTLE VENTRICLES
+        // ----------------------------------------------
+
         ventricles: {
           visible: true,
-          opacity: 0.35
+          opacity: 0.28
         }
 
       });
