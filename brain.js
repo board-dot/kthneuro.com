@@ -5,7 +5,7 @@ if (!container) {
 } else {
 
   // --------------------------------------------------
-  // Preload the actual brain model immediately
+  // Preload the brain model
   // --------------------------------------------------
 
   const preload = document.createElement("link");
@@ -67,29 +67,30 @@ if (!container) {
 
     palette: {
 
-      cortex: "#E7DEC9",
+      cortex: "#DDE9F5",
 
-      white_matter: "#D7DDE8",
+      white_matter: "#C9D8E8",
 
-      deep_grey: "#B57BE0",
+      deep_grey: "#A88BD4",
 
-      diencephalon: "#7E8CF2",
+      diencephalon: "#718DE0",
 
       brainstem: "#E8B24A",
 
-      cerebellum: "#F0894E",
+      cerebellum: "#D98C72",
 
-      ventricles: "#3FC8D6",
+      ventricles: "#55D5DD",
 
       arteries: "#F05068",
 
       veins_sinuses: "#5078E8",
 
-      cranial_nerves: "#D9D24A",
+      // Cyan instead of yellow
+      cranial_nerves: "#8FE7E7",
 
       meninges_dura: "#CC63CC",
 
-      tracts: "#5FB6C9"
+      tracts: "#62C7C7"
     }
 
   };
@@ -103,13 +104,13 @@ if (!container) {
 
     try {
 
-      // Three.js MUST load first.
+      // Three.js
       await loadScript(
         "https://unpkg.com/three@0.137.0/build/three.min.js"
       );
 
 
-      // These three can load simultaneously.
+      // Load the remaining dependencies together
       await Promise.all([
 
         loadScript(
@@ -137,7 +138,7 @@ if (!container) {
 
 
       // ------------------------------------------------
-      // Create the real anatomical brain
+      // Create the anatomical brain
       // ------------------------------------------------
 
       const brain = window.BrainScene.create(
@@ -161,77 +162,114 @@ if (!container) {
 
 
       // ------------------------------------------------
-      // CLEAN HERO VIEW
+      // KTH NEURO HERO APPEARANCE
+      // ------------------------------------------------
       //
-      // Keep the actual brain.
-      // Remove distracting structures that extend
-      // far below the brain.
+      // Transparent cortex
+      // Neural structures visible
+      // Blood vessels hidden
+      // Yellow brainstem hidden
       // ------------------------------------------------
 
       brain.setLayers({
 
+        // Main cortex:
+        // transparent enough to see inside
         cortex: {
           visible: true,
-          opacity: 1
+          opacity: 0.24
         },
 
+
+        // White matter:
+        // subtle internal layer
         white_matter: {
           visible: true,
-          opacity: 1
+          opacity: 0.30
         },
 
+
+        // Deep grey matter:
+        // visible through cortex
         deep_grey: {
           visible: true,
-          opacity: 0.9
+          opacity: 0.70
         },
 
+
+        // Deep central structures
         diencephalon: {
           visible: true,
-          opacity: 0.9
+          opacity: 0.60
         },
 
+
+        // Hide the large yellow brainstem
         brainstem: {
-          visible: true,
-          opacity: 1
+          visible: false
         },
 
+
+        // Keep cerebellum subtle
         cerebellum: {
           visible: true,
-          opacity: 1
+          opacity: 0.25
         },
 
-        // Hide these for the clean KTH Neuro hero.
+
+        // ------------------------------------------------
+        // NEURAL STRUCTURES
+        // ------------------------------------------------
+
+        cranial_nerves: {
+          visible: true,
+          opacity: 0.95
+        },
+
+
+        // Internal white-matter pathways
+        tracts: {
+          visible: true,
+          opacity: 0.60
+        },
+
+
+        // ------------------------------------------------
+        // HIDE BLOOD VESSELS
+        // ------------------------------------------------
+
         arteries: {
           visible: false
         },
+
 
         veins_sinuses: {
           visible: false
         },
 
-        cranial_nerves: {
-          visible: false
-        },
 
-        tracts: {
-          visible: false
-        },
+        // ------------------------------------------------
+        // OTHER STRUCTURES
+        // ------------------------------------------------
 
+        // Hide outer membrane
         meninges_dura: {
           visible: false
         },
 
+
+        // Keep ventricles faint
         ventricles: {
-          visible: false
+          visible: true,
+          opacity: 0.35
         }
 
       });
 
 
       console.log(
-        "KTH Neuro: clean anatomical brain loaded."
+        "KTH Neuro: transparent neural brain loaded."
       );
-
 
     } catch (error) {
 
