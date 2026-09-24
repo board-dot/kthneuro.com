@@ -1,61 +1,38 @@
-// KTH Neuro — original Brain Project renderer
-// Uses the real anatomical brain.glb and the original Brain Project scene.
-
 const container = document.getElementById("brain-3d");
 
 if (!container) {
   console.error("KTH Neuro: #brain-3d not found.");
 } else {
 
-  // Brain Project's actual colour palette
-  window.BRAIN = {
-    palette: {
-      cortex: "#E7DEC9",
-      white_matter: "#D7DDE8",
-      deep_grey: "#B57BE0",
-      diencephalon: "#7E8CF2",
-      brainstem: "#E8B24A",
-      cerebellum: "#F0894E",
-      ventricles: "#3FC8D6",
-      arteries: "#F05068",
-      veins_sinuses: "#5078E8",
-      cranial_nerves: "#D9D24A",
-      meninges_dura: "#CC63CC",
-      tracts: "#5FB6C9"
-    }
-  };
-
-  // Make a canvas for the original renderer.
   const canvas = document.createElement("canvas");
 
   canvas.style.width = "100%";
   canvas.style.height = "100%";
   canvas.style.display = "block";
-  canvas.style.cursor = "grab";
 
   container.innerHTML = "";
   container.appendChild(canvas);
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
+      const s = document.createElement("script");
+      s.src = src;
 
-      script.src = src;
+      s.onload = resolve;
 
-      script.onload = resolve;
-      script.onerror = () => reject(
-        new Error("Could not load " + src)
-      );
+      s.onerror = () => {
+        reject(new Error("Failed to load: " + src));
+      };
 
-      document.head.appendChild(script);
+      document.head.appendChild(s);
     });
   }
 
-  async function startBrain() {
+  async function start() {
 
     try {
 
-      // The original Brain Project uses Three.js r137.
+      // EXACT Three.js version used by Brain Project
       await loadScript(
         "https://unpkg.com/three@0.137.0/build/three.min.js"
       );
@@ -68,14 +45,21 @@ if (!container) {
         "https://unpkg.com/three@0.137.0/examples/js/loaders/DRACOLoader.js"
       );
 
-      // Load the original Brain Project scene implementation.
+      // Brain Project data / colour definitions
       await loadScript(
-        "https://raw.githubusercontent.com/itayinbarr/brainproject/main/brain-atlas/scene.js"
+        "https://cdn.jsdelivr.net/gh/itayinbarr/brainproject@main/brain-atlas/data.js"
+      );
+
+      // IMPORTANT:
+      // jsDelivr instead of raw.githubusercontent.com
+      // so the browser receives this as JavaScript.
+      await loadScript(
+        "https://cdn.jsdelivr.net/gh/itayinbarr/brainproject@main/brain-atlas/scene.js"
       );
 
       if (!window.BrainScene) {
         throw new Error(
-          "Brain Project renderer did not load."
+          "BrainScene was not created."
         );
       }
 
@@ -95,18 +79,18 @@ if (!container) {
         );
 
       console.log(
-        "KTH Neuro: original Brain Project renderer loaded."
+        "KTH Neuro: real anatomical brain loaded."
       );
 
     } catch (error) {
 
       console.error(
-        "KTH Neuro: 3D brain failed to initialize.",
+        "KTH Neuro brain error:",
         error
       );
 
     }
   }
 
-  startBrain();
+  start();
 }
