@@ -6,18 +6,21 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
 const container = document.getElementById("brain-3d");
 
 if (!container) {
-  console.error("KTH Neuro: #brain-3d was not found.");
+  console.error("KTH Neuro: brain container not found.");
 } else {
+
+  // --------------------------------------------------
+  // Scene
+  // --------------------------------------------------
+
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    35,
+    38,
     container.clientWidth / Math.max(container.clientHeight, 1),
     0.01,
-    1000
+    200
   );
-
-  camera.position.set(0, 0.15, 2.6);
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -26,34 +29,79 @@ if (!container) {
   });
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.05;
 
   container.appendChild(renderer.domElement);
 
+  // --------------------------------------------------
   // Lighting
+  // --------------------------------------------------
+
   scene.add(
-    new THREE.HemisphereLight(0xffffff, 0x223044, 2.2)
+    new THREE.HemisphereLight(
+      0xc6d2ff,
+      0x14171f,
+      1.2
+    )
   );
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-  keyLight.position.set(3, 4, 5);
-  scene.add(keyLight);
+  const key = new THREE.DirectionalLight(
+    0xffffff,
+    2.0
+  );
 
-  const fillLight = new THREE.DirectionalLight(0x9bbcff, 1.2);
-  fillLight.position.set(-4, 1, 2);
-  scene.add(fillLight);
+  key.position.set(4, 6.5, 7);
+  scene.add(key);
 
-  const rimLight = new THREE.DirectionalLight(0xffffff, 1);
-  rimLight.position.set(0, -2, -5);
-  scene.add(rimLight);
+  const fill = new THREE.DirectionalLight(
+    0xaebfff,
+    0.8
+  );
 
-  const brainRoot = new THREE.Group();
-  scene.add(brainRoot);
+  fill.position.set(-6, 1, 3);
+  scene.add(fill);
 
+  const rim = new THREE.DirectionalLight(
+    0x8ee0ff,
+    1.3
+  );
+
+  rim.position.set(-3, 3, -8);
+  scene.add(rim);
+
+  const rim2 = new THREE.DirectionalLight(
+    0xff9bb6,
+    0.45
+  );
+
+  rim2.position.set(5, -2, -6);
+  scene.add(rim2);
+
+  // --------------------------------------------------
+  // Brain root
+  // --------------------------------------------------
+
+  const root = new THREE.Group();
+
+  root.rotation.y = -0.25;
+
+  scene.add(root);
+
+  const modelGroup = new THREE.Group();
+
+  root.add(modelGroup);
+
+  // --------------------------------------------------
   // Mouse controls
+  // --------------------------------------------------
+
   const controls = new OrbitControls(
     camera,
     renderer.domElement
@@ -61,21 +109,26 @@ if (!container) {
 
   controls.enableDamping = true;
   controls.dampingFactor = 0.075;
+
   controls.enablePan = true;
   controls.enableZoom = true;
-  controls.minDistance = 0.35;
-  controls.maxDistance = 8;
 
-  controls.target.set(0, 0, 0);
+  controls.minDistance = 2.6;
+  controls.maxDistance = 16;
 
-  // Gentle automatic rotation
+  controls.target.set(
+    0,
+    -0.05,
+    0
+  );
+
   controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.55;
+  controls.autoRotateSpeed = 0.45;
 
-  // Stop automatic rotation when the visitor interacts
-  const stopAutoRotate = () => {
+  // Stop automatic rotation once the visitor interacts.
+  function stopAutoRotate() {
     controls.autoRotate = false;
-  };
+  }
 
   renderer.domElement.addEventListener(
     "pointerdown",
@@ -84,157 +137,280 @@ if (!container) {
 
   renderer.domElement.addEventListener(
     "wheel",
-    stopAutoRotate
+    stopAutoRotate,
+    { passive: true }
   );
 
   renderer.domElement.addEventListener(
     "touchstart",
-    stopAutoRotate
+    stopAutoRotate,
+    { passive: true }
   );
 
-  // Draco decoder
+  // --------------------------------------------------
+  // Draco
+  // --------------------------------------------------
+
   const dracoLoader = new DRACOLoader();
 
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.7/"
   );
 
-  // GLB loader
   const loader = new GLTFLoader();
 
   loader.setDRACOLoader(dracoLoader);
+
+  // --------------------------------------------------
+  // Brain model
+  // --------------------------------------------------
 
   loader.load(
     "./models/brain.glb",
 
     (gltf) => {
-      const model = gltf.scene;
 
-      // Prepare all anatomical meshes
-      model.traverse((object) => {
-        if (!object.isMesh) return;
+      const brain = gltf.scene;
 
-        object.frustumCulled = true;
+      modelGroup.add(brain);
 
-        if (object.material) {
-          const materials = Array.isArray(object.material)
-            ? object.material
-            : [object.material];
+      const meshes = [];
 
-          materials.forEach((material) => {
-            material.transparent = false;
-            material.depthWrite = true;
-            material.side = THREE.DoubleSide;
+      // ------------------------------------------------
+      // IMPORTANT:
+      // Replace the GLB's original materials.
+      // This is what the original Brain Project does.
+      // ------------------------------------------------
 
-            if ("roughness" in material) {
-              material.roughness = 0.72;
-            }
+      brain.traverse((object) => {
 
-            if ("metalness" in material) {
-              material.metalness = 0;
-            }
-          });
+        if (!object.isMesh) {
+          return;
         }
+
+        meshes.push(object);
+
+        // Read anatomical category if available.
+        const category =
+          object.userData?.bx_cat || "cortex";
+
+        // KTH Neuro palette
+        let color = 0xd9e3f2;
+
+        if (category === "cortex") {
+          color = 0xd9e3f2;
+        }
+
+        if (category === "white_matter") {
+          color = 0xc8d5e5;
+        }
+
+        if (category === "deep_grey") {
+          color = 0x9c86c9;
+        }
+
+        if (category === "diencephalon") {
+          color = 0x718bd1;
+        }
+
+        if (category === "brainstem") {
+          color = 0xd7a34b;
+        }
+
+        if (category === "cerebellum") {
+          color = 0xd98a70;
+        }
+
+        if (category === "ventricles") {
+          color = 0x54c8d2;
+        }
+
+        if (category === "arteries") {
+          color = 0xe75b6b;
+        }
+
+        if (category === "veins_sinuses") {
+          color = 0x597bd4;
+        }
+
+        if (category === "cranial_nerves") {
+          color = 0xd3ca4c;
+        }
+
+        if (category === "meninges_dura") {
+          color = 0xc47ac1;
+        }
+
+        if (category === "tracts") {
+          color = 0x55bda8;
+        }
+
+        // NEW SOLID MATERIAL
+        object.material =
+          new THREE.MeshStandardMaterial({
+
+            color: color,
+
+            roughness:
+              category === "arteries" ||
+              category === "veins_sinuses" ||
+              category === "cranial_nerves"
+                ? 0.5
+                : 0.82,
+
+            metalness: 0,
+
+            transparent: true,
+
+            opacity:
+              category === "meninges_dura"
+                ? 0.34
+                : 1,
+
+            depthWrite: true,
+
+            side:
+              category === "meninges_dura"
+                ? THREE.DoubleSide
+                : THREE.FrontSide,
+
+            emissive: color,
+
+            emissiveIntensity:
+              category === "deep_grey" ||
+              category === "diencephalon"
+                ? 0.18
+                : 0.04
+          });
+
+        object.castShadow = false;
+        object.receiveShadow = false;
       });
 
-      brainRoot.add(model);
+      // ------------------------------------------------
+      // Find the core brain
+      // ------------------------------------------------
 
-      // Find the complete model bounds
-      const box = new THREE.Box3().setFromObject(model);
+      const coreBox =
+        new THREE.Box3();
 
-      const center = box.getCenter(
-        new THREE.Vector3()
-      );
+      let hasCore = false;
 
-      const size = box.getSize(
-        new THREE.Vector3()
-      );
+      for (const mesh of meshes) {
 
-      // Center the brain
-      model.position.sub(center);
+        const core =
+          mesh.userData?.bx_core;
 
-      // Scale it to a good size
-      const maxDimension = Math.max(
-        size.x,
-        size.y,
-        size.z
-      );
+        if (core === 1 || core === true) {
 
-      if (maxDimension > 0) {
-        const desiredSize = 1.65;
-        const scale = desiredSize / maxDimension;
+          coreBox.expandByObject(mesh);
 
-        model.scale.setScalar(scale);
+          hasCore = true;
+        }
       }
 
-      // Frame the entire brain
-      const framedBox = new THREE.Box3().setFromObject(model);
+      if (!hasCore) {
+        coreBox.setFromObject(brain);
+      }
 
-      const framedSize = framedBox.getSize(
-        new THREE.Vector3()
+      // ------------------------------------------------
+      // Center the brain
+      // ------------------------------------------------
+
+      const center =
+        coreBox.getCenter(
+          new THREE.Vector3()
+        );
+
+      brain.position.sub(center);
+
+      // ------------------------------------------------
+      // Scale the brain
+      // ------------------------------------------------
+
+      const sphere =
+        coreBox.getBoundingSphere(
+          new THREE.Sphere()
+        );
+
+      const radius =
+        sphere.radius || 1;
+
+      modelGroup.scale.setScalar(
+        1.7 / radius
       );
 
-      const framedCenter = framedBox.getCenter(
-        new THREE.Vector3()
-      );
+      // ------------------------------------------------
+      // Anatomical orientation
+      // ------------------------------------------------
 
-      controls.target.copy(framedCenter);
+      brain.rotation.y = Math.PI;
 
-      const maxFramed = Math.max(
-        framedSize.x,
-        framedSize.y,
-        framedSize.z
-      );
-
-      const distance = Math.max(
-        maxFramed * 1.35,
-        1.9
-      );
+      // ------------------------------------------------
+      // Camera
+      // ------------------------------------------------
 
       camera.position.set(
-        distance * 0.78,
-        distance * 0.18,
-        distance * 0.78
+        0,
+        -0.05,
+        7.6
       );
 
-      camera.lookAt(framedCenter);
+      controls.target.set(
+        0,
+        -0.05,
+        0
+      );
 
-      // Slightly turn the brain toward the viewer
-      model.rotation.y = -0.12;
+      camera.lookAt(
+        controls.target
+      );
 
       console.log(
-        "KTH Neuro: 3D brain loaded successfully."
+        "KTH Neuro: anatomical brain loaded."
       );
     },
 
     undefined,
 
     (error) => {
+
       console.error(
-        "KTH Neuro: could not load models/brain.glb",
+        "KTH Neuro: brain.glb failed to load.",
         error
       );
+
     }
   );
 
-  // Keep the brain correctly sized
+  // --------------------------------------------------
+  // Resize
+  // --------------------------------------------------
+
   function resize() {
-    const width = Math.max(
-      container.clientWidth,
-      1
-    );
 
-    const height = Math.max(
-      container.clientHeight,
-      1
-    );
+    const width =
+      Math.max(
+        container.clientWidth,
+        1
+      );
 
-    camera.aspect = width / height;
+    const height =
+      Math.max(
+        container.clientHeight,
+        1
+      );
+
+    camera.aspect =
+      width / height;
 
     camera.updateProjectionMatrix();
 
     renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
+      Math.min(
+        window.devicePixelRatio,
+        2
+      )
     );
 
     renderer.setSize(
@@ -251,9 +427,15 @@ if (!container) {
 
   resize();
 
+  // --------------------------------------------------
   // Animation
+  // --------------------------------------------------
+
   function animate() {
-    requestAnimationFrame(animate);
+
+    requestAnimationFrame(
+      animate
+    );
 
     controls.update();
 
